@@ -1,0 +1,7 @@
+{
+  "name": "SPTS Mobile Pro",
+  "description": "A high-performance OTRS mobile client with AI assistance, GPS-based travel tracking, and SLA visualization.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
