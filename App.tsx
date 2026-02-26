@@ -311,10 +311,18 @@ export default function App() {
     setAiMessage("");
     setAiHistory(prev => [...prev, { role: 'user', text: msg }]);
     setAiLoading(true);
-    const context = detail ? `Klijent: ${detail.location?.name}, Kvar: ${detail.subject}. Opis: ${detail.articles[0]}` : "";
-    const answer = await geminiService.getAiAdvice(msg, context);
-    setAiHistory(prev => [...prev, { role: 'bot', text: answer }]);
-    setAiLoading(false);
+    
+    // Mock response instead of API call
+    setTimeout(() => {
+      const answer = "Gemini API je trenutno isključen. Ovo je demo odgovor.";
+      setAiHistory(prev => [...prev, { role: 'bot', text: answer }]);
+      setAiLoading(false);
+    }, 1000);
+
+    // const context = detail ? `Klijent: ${detail.location?.name}, Kvar: ${detail.subject}. Opis: ${detail.articles[0]}` : "";
+    // const answer = await geminiService.getAiAdvice(msg, context);
+    // setAiHistory(prev => [...prev, { role: 'bot', text: answer }]);
+    // setAiLoading(false);
   };
 
   // --- GESTURE LOGIC ---
@@ -411,7 +419,7 @@ export default function App() {
                 {/* 1. SUBJECT CARD */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                   <div className="flex justify-between items-start mb-4">
-                    <span className="bg-blue-50 text-blue-600 text-[10px] font-bold tracking-widest px-2 py-1 rounded-md">#{detail.number}</span>
+                    <span className="bg-blue-50 text-blue-600 text-[10px] font-bold tracking-widest px-2 py-1 rounded-md">{detail.number}</span>
                     <SlaBadge sla={detail.ticket.sla} />
                   </div>
                   <h3 className="text-xl font-extrabold text-gray-900 leading-tight mb-2">
@@ -544,7 +552,7 @@ export default function App() {
                   <div key={t.id} onClick={() => openTicket(t.id)} className="bg-white rounded-[24px] p-5 shadow-sm border border-transparent hover:border-blue-100 active:bg-blue-50/30 active:scale-[0.98] transition-all flex items-center justify-between group">
                     <div className="flex-1 pr-4">
                       <div className="flex items-center gap-3 mb-2">
-                        <span className="text-[10px] font-black text-gray-300 tracking-widest uppercase">#{t.number}</span>
+                        <span className="text-[10px] font-black text-gray-300 tracking-widest uppercase">{t.number}</span>
                       </div>
                       <h4 className="text-[15px] font-bold text-gray-800 line-clamp-1 group-active:text-blue-700">{t.title}</h4>
                       <div className="flex items-center gap-2 mt-2">
