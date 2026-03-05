@@ -1,0 +1,258 @@
+DEICHMANN ROLLOUT DPOS REPUBLIKA SRPSKA FISKALNI:
+
+1. Dolazak u radnju - zovnuti Deichmann da se pripremi - standardno reći br radnje i da se radi fiskalna implementacija
+2. Konfiguracija android uredjaja. Spasiti podesavanja i ugasiti uredjaj. S29BN1 - servisna šifra
+3. Prebaciti port na switchu (iz porta 36 u port 3) 
+4. Vratiti se na kasu i upaliti android uredjaj na dockingu
+5. Prebaciti Epson T88VII sa Vedranove kase na Deichmann kasu - nije potrebna zamjena kabla, samo se ubode power USB.
+6. Konfigurisati Epson T88VII da radi automatsku selekciju interfejsa (na PWD USB) - napravicu video kako se radi
+7. Ugasiti i upaliti EPSON POS printer
+8. Zvati Deichmann da pusti konfiguraciju
+9. Proces njihov traje nekih 10tak min, dok se instalira moze se skinuti vedranov monitor, ugasiti njegov komp i krenuti ganjati kablove ispod.
+10. Skidamo sve Komp, miš, tastaturu, monitor, UPS, i sve ide kod nas u magacin
+11. Kad Deichmann završi zvace te da kazu da se moze probati
+12. Samo neka otkucaju radnici jedan racun jedan povrat, ako radi sve to je to. Deichmann ce potvrditi da je toto i moze se ici
+
+Dijagnostika Android (LPFR) uređaja u Republici Srpskoj
+
+Ovaj dokument opisuje standardnu proceduru dijagnostike Android LPFR uređaja koji su povezani sa fiskalnim kasama kod korisnika (Tendam, H&M, NewYorker, Petrol, Koton..). Procedura se primjenjuje u slučajevima kada postoji problem sa izdavanjem fiskalnog računa ili fiskalizacijom.
+
+Kada je potrebno izvršiti dijagnostiku?
+Dijagnostika je potrebna u sljedećim slučajevima:
+•	Aplikacija prijavljuje offline grešku
+•	Račun se ne može fiskalizovati
+•	Postoje druge greške u radu fiskalne aplikacije (osim greške kad aplikacija konkretno prijavljuje grešku sa štampanjem odnosno POS printerom)
+
+Korak 1: Fizička provjera docking stationa
+1.	Uzmite Android LPFR uređaj sa docking stationom
+2.	Provjerite da li su:
+o	Mrežni (LAN) kabl pravilno povezan
+o	Kabl za napajanje pravilno povezan
+
+Korak 2: Provjera punjenja Android uređaja
+1.	Na Android uređaju provjerite indikator baterije (gornji desni ugao ekrana)
+2.	Ako je prikazano da se uređaj puni:
+o	Napajanje je ispravno
+o	Veza sa docking stationom je ispravna
+3.	Ako se uređaj ne puni:
+o	Provjerite da li je uređaj pravilno nalegao u docking station – pritisnite android uređaj kako bi bolej nalegao u docking i provjerite da li je punjenje započelo
+o	Ako to ne pomogne, zamijenite:
+	USB C kabl
+	Adapter za napajanje (5V)
+o	Ako i dalje nema punjenja → zamijeniti docking station
+
+Korak 3: Provjera bezbjednonosnog elementa
+Ako se uređaj puni, ali i dalje nema komunikacije:
+1.	Unesite PIN kod na uređaju
+2.	Provjerite poruku na ekranu:
+o	Ukoliko se uređaj bez smetnje prijavi i u tabu info nema grešaka nastavite dijagnostiku
+o	Ako se pojavi nepoznata greška ili element nije dostupan ili blokiran bezbjednosni element:
+	Sigurnosni element je blokiran ili oštećen
+	U oba slučaja potrebno je izvršiti zamjenu sigurnosnog elementa
+
+Korak 4: Provjera mrežnih podešavanja
+1.	Povucite prstom od vrha ekrana prema dolje
+2.	Uđite u Service mode
+3.	Unesite servisni PIN S29BN1
+4.	Otvorite:
+o	Network settings
+o	Ethernet settings
+5.	Provjerite:
+o	IP adresu
+o	Gateway
+o	Ostala mrežna podešavanja
+Sva podešavanja moraju biti u skladu sa definisanom mrežnom konfiguracijom.
+
+Korak 5: Restart i test konekcije
+1.	Restartujte:
+o	Android uređaj
+o	Docking station
+2.	Sa računara izvršite PING test prema IP adresi uređaja
+3.	Ako PING postoji:
+o	Mrežna komunikacija je ispravna
+
+Korak 6: Provjera S4Fiscal konfiguracije
+Ako je mrežna veza ispravna, potrebno je:
+•	Provjeriti S4Fiscal konfiguraciju na računaru
+•	Osigurati da su svi parametri pravilno podešeni
+
+
+
+Zaključak
+Ovom procedurom obuhvaćeni su svi osnovni koraci dijagnostike Android LPFR uređaja: fizička provjera, napajanje, bezbjednosni element, mrežna konfiguracija i softverska provjera. Pravilnim redoslijedom koraka omogućava se brzo lociranje i otklanjanje problema.
+
+
+HP MSR ROUTERI INICIJALNO UPUTSTVO ZA POVEZIVANJE I KONFIGURACIJU ROUTERA U TENDAM RADNJAMA
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Izgled prednje strane MSR routera te indikatori (zelenom bojom je označen cilj za ispravan rad u Tendam radnjama):
+Indikator	Stanje LED-a	Značenje
+SYS	Isključen	Ruter nije uključen.
+	Treperi (normalno)	Sistem radi ispravno.
+	Stalno svijetli	Ruter se pokreće ili postoji sistemska greška.
+	Brzo treperi	U toku je pokretanje ili ažuriranje firmware-a.
+VPN	Isključen	Nema aktivne VPN konekcije.
+	Stalno svijetli	VPN konekcija je uspostavljena i aktivna.
+	Treperi	Uspostavljanje ili prekidanje VPN veze.
+Internet	Isključen	Nema fizičke WAN veze ili nema interneta.
+	Stalno svijetli	WAN veza postoji i Internet je dostupan.
+	Treperi	Aktivni prenos podataka preko interneta.
+WLAN	Isključen	Bežična mreža (Wi-Fi) je isključena.
+	Stalno svijetli	WLAN je uključen i spreman.
+	Treperi	Aktivna Wi-Fi komunikacija (povezivanje uređaja, prenos podataka).
+
+
+
+
+
+
+
+
+Izgled zadnje strane MSR routera te portovi koji se koriste i koji će nam biti potrebni:
+
+Oznaka	Tip priključka	Namjena / Opis
+CON/AUX	RJ-45 (Console port)	Koristi se za povezivanje rutera sa računarom radi konfiguracije putem serijskog terminala (npr. PuTTY, TeraTerm).
+GE0	Gigabit Ethernet (WAN)	Glavni WAN port – koristi se za povezivanje na internet (modem, uplink, ili provider).
+GE1	Gigabit Ethernet (LAN)	LAN port za lokalne uređaje ili dodatne mrežne segmente.
+GE2	Gigabit Ethernet (LAN)	LAN port za lokalne uređaje ili dodatne mrežne segmente.
+GE3	Gigabit Ethernet (LAN)	LAN port za lokalne uređaje ili dodatne mrežne segmente.
+GE4	Gigabit Ethernet (LAN)	LAN port za lokalne uređaje ili dodatne mrežne segmente.
+Wi-Fi antena (2 konektora)	SMA konektori	Spoj za vanjske Wi-Fi antene (TX/RX) – omogućava bolji bežični signal i pokrivenost. (ovo se ne koristi u Tendam projektu)
+
+
+
+
+
+
+
+
+
+
+Sam početak konfiguracije MSR routera započinjemo povezivanjem konzolnog kabla sa računarom (vidi sliku ispod):
+
+
+
+
+
+
+
+
+
+
+S obzirom da je konzolni kabl u formatu serial (RS232) porta bice nam potreban I RS232 na USB te driver za računar. Nakon povezivanja samog kabla potrebno je u device manageru provjeriti pripadajući port (COM2,COM3…):
+
+
+
+
+
+
+Iz prikazane slike vidimo da je driver odredio COM5 port                                                                                        za virtuelni serijski port
+
+
+
+
+Nakon što povežemo računar sa routerom potrebno je pokrenuti aplikaciju Teraterm (može se koristiti I nutty ili direktna telnet veza). Pokrenuti “new connection” i odabrati serijski interface:
+
+
+
+
+
+
+
+
+Potvrditi sa OK nakon čega započinje komunikacija Teraterm-a i HP routera putem serijske-konzolne konekcije.
+
+Inicijalni prozor izgleda ovako:
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ukoliko konfigurišemo nov HP ruter (otvaranje radnje, zamjena) mozemo koristiti jedan od vec izradjenih templatea za konfiguraciju ( HP MSR 954 ili MSR 930). U tekstualnom dokumentu izmjenimo potrebno (broj radnje, ip adrese) te konfiguraciju upsujemo dio po dio u konzolu. Prije upisivanja provjeriti trenutnu konfiguraciju sa komandom dis cur. Prilikom inicijalnog upisa potrebno je ući u servisni mod upisivanjem skracenice “sys”.
+
+
+
+
+
+
+
+
+Ukoliko se radi o dijagnostici ili izlazku na teren zbog odsustva mreze ili generalno interneta u radnji mozemo pristupiti dijagnostici:
+
+Prva komanda za provjeru kompletnog configa je
+dis cur -HP ispisuje sve upisane komande na router koje mozemo uporediti sa cofig falom radnje. 
+
+
+
+
+
+
+
+
+
+Bitno je provjeravati sa configom radnje jer su IP adrese interfejsa i propustanja prema serveru u spaniji drugacije za svaku radnju.
+Dalju provjeru mozemo vrsiti preko komandi: 
+
+dis ip routing-table    //PROVJERA IP ADRESA TRENUTNO DOSTUPNIH I AKTIVNIH//
+Ovdje gledamo na kojoj adresi radi HP, koja mu je izlazna Ip adresa i routing
+
+dis arp		     //PROVJERA POVEZANIH INTERFACEA -  PROVJERA STA JE SVE SPOJENO NA RUTER OD OPREME U RADNJI// 
+Ovo nam sluzi kako bi provjerili ispravnost switcha, mrežne opreme i generalno vidljivost uredjaja u lokalu. Takodje dobar alat za potencijonalne kvarove portova na HP routeru. 
+
+dis int brief		//PROVJERA UP&DOWN LINKA -  GIGABIT 0/0 TREBA DA JE UVIJEK LINK I PROTOCOL UP, DIALER 10 TAKDOJE TE IP ADRESE TREBAJU BITI VIDLJIVE//
+Jedan od najlakših alata za provjeru linka i dostupnosti interneta na HP routeru
+UKOLIKO JE LINK UP A PROTOCOL DOWN ZNACI DA PROBLEM NIJE VEZA IZMEDJU ISP ROUTERA I HP ROUTERA NEGO USPOSTAVLJANJE KONEKCIJE PREKO BRIDGE-A
+
+Ukoliko imamo ovakav slučaj možemo uzrok tražiti u dvije stvari: da li je IPS zaista u bridge modu? Postoji mogucnost da je ISP router u route modu te internet ne možemo dobiti dok ne isključimo interface Dialer10 na HP routeru (ovo nije predvidjeno Tendamom ali za radnje koje ISP ne moze da konfigurise bridge mode moze se podesiti rad u route modu na sledeci nacin:
+
+[SUC7752]undo int vlan1
+[SUC7752]int GigabitEthernet 0/0
+[SUC7752-GigabitEthernet0/0]undo  ip address 185.12.79.33 255.255.255.0  /ili drugi IP koji je dodjeljen
+[SUC7752-GigabitEthernet0/0]ip address dhcp
+[SUC7752-GigabitEthernet0/0]ip address dhcp-alloc
+[SUC7752-GigabitEthernet0/0]quit
+[SUC7752]undo ip route-static 0.0.0.0 0.0.0.0 92.36.224.1
+[SUC7752]undo ip route-static 0.0.0.0 0.0.0.0 185.12.78.1
+[SUC7752]undo ip route-static 0.0.0.0 0.0.0.0 192.168.0.1
+[SUC7752]undo ip route-static 0.0.0.0 0.0.0.0 185.12.79.1  /ili drugi IP koji je vec dodjeljen
+[SUC7752]save
+
+[SUC7752]int GigabitEthernet 0/0
+[SUC7752-GigabitEthernet0/0]shutdown
+[SUC7752-GigabitEthernet0/0]undo shutdown
+
+Druga mogucnost ukoliko je ISP zaista u bridge modu - POTREBNO JE PROVJERITI KREDENCIJALE U DIALER10 INTERFACEU
+Nakon ovoga mozemo testirati ponasanje HP routera prilkom uspostavljanja konekcije 
+To mozemo uraditi na sledeci nacin - dok smo u konzoli HP routera upisati
+interface 
+[SUCxxxx-GigabitEthernet0/0]shutdown
+[SUCxxxx-GigabitEthernet0/0]undo shutdown
+
+nakon ovoga Gi0/0 interfejs ce poceti podizanje te ce "povuci" Dialer10 interface.
+
+nakon par minuta router bi trebao da da odgovor da li je povezivanje uspjesno ili odbijeno (pratiti status Dialer 10, automatski ispisuje debug na ekranu)

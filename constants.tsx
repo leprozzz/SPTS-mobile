@@ -21,4 +21,31 @@ export const SLA_MAP = {
   YELLOW: ["12h", "24h"],
 };
 
-export const GOOGLE_SCRIPTS_URL = "https://script.google.com/macros/s/AKfycbz..."; // Placeholder
+export const GOOGLE_SCRIPTS_URL = "https://script.google.com/macros/s/AKfycbxWCNivgG-qZErP2ZK_0DU52lcm9AjiopjwAVcdn6Ls3m5sdUszbWXPQvB-wVqsHdV1/exec";
+
+export const PARTS_LIST = [
+  "POS PC",
+  "POS Printer P1200",
+  "POS Printer TH250",
+  "POS Display",
+  "Ink Printer Eco Tank",
+  "PC Mouse",
+  "PC Keyboard",
+  "Label printer",
+  "Ladica za novac",
+  "SSD disk",
+  "Napajanje eksterno",
+  "Bravica sa 2 kljuca",
+  "Kablovi",
+  "PC HP dektop",
+  "HP Mouse",
+  "HP USB Keyboard",
+  "Genius Keyboard",
+  "Dlink swich",
+  "Datalogic scanner",
+  "Beeltle PC",
+  "Monitor WN",
+  "Monitor LG",
+  "Skener Motorola",
+  "Cradle Motorola"
+];

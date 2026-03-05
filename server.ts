@@ -622,6 +622,127 @@ async function startServer() {
   });
 
 
+  // -------- TICKET DESCRIPTION (iframe content) --------
+  app.get("/api/ticket/:id/description", async (req, res) => {
+    try {
+      const ticketId = req.params.id;
+      const zoomUrl = `${SPTS_INDEX}?Action=AgentTicketZoom;TicketID=${encodeURIComponent(ticketId)}`;
+
+      const zoomResp = await client.get(zoomUrl);
+      const zoomHtml = String(zoomResp.data);
+
+      if (looksLikeLoginPage(zoomHtml)) {
+        res.status(401).json({ success: false, message: "Not logged in" });
+        return;
+      }
+
+      const $ = cheerio.load(zoomHtml);
+      
+      // Find the iframe that likely contains the description (FileID=1 or similar)
+      // User provided example: src="/otrs/index.pl?Action=AgentTicketAttachment;Subaction=HTMLView...FileID=1..."
+      let iframeSrc = "";
+      $("iframe").each((_, el) => {
+        const src = $(el).attr("src") || "";
+        if (src.includes("Action=AgentTicketAttachment") && src.includes("Subaction=HTMLView")) {
+          // Prefer FileID=1 if multiple, otherwise take the first one
+          if (!iframeSrc || src.includes("FileID=1")) {
+            iframeSrc = src;
+          }
+        }
+      });
+
+      if (!iframeSrc) {
+        // Fallback: try to find the first article text if no iframe found
+        const firstArticle = $(".Article .ArticleBody").first().text().trim();
+        res.json({ success: true, description: firstArticle || "Opis nije pronađen (nema iframe-a)." });
+        return;
+      }
+
+      // Resolve URL
+      let fullUrl = iframeSrc;
+      if (fullUrl.startsWith("/")) fullUrl = `${SPTS_BASE}${fullUrl}`;
+
+      const descResp = await client.get(fullUrl);
+      const descHtml = String(descResp.data);
+      
+      // Extract body content from the iframe HTML
+      const $$ = cheerio.load(descHtml);
+      const description = $$("body").text().trim();
+
+      res.json({ success: true, description });
+
+    } catch (err: any) {
+      console.error("DESCRIPTION GET ERROR:", err.message);
+      res.status(500).json({ success: false, message: "Failed to fetch description", error: err.message });
+    }
+  });
+
+  // -------- ADD NOTE (POST) --------
+  app.post("/api/ticket/:id/note", async (req, res) => {
+    try {
+      const ticketId = req.params.id;
+      const { subject, body, timeUnits } = req.body || {};
+
+      const formUrl = `${SPTS_INDEX}?Action=AgentTicketNote;TicketID=${encodeURIComponent(ticketId)}`;
+      const formResp = await client.get(formUrl);
+      const formHtml = String(formResp.data);
+
+      if (looksLikeLoginPage(formHtml)) {
+        res.status(401).json({ success: false, message: "Not logged in" });
+        return;
+      }
+
+      const $ = cheerio.load(formHtml);
+      const form = $("form").first();
+      const action = resolveFormAction(form.attr("action"));
+      const payload = buildPayloadFromForm($, form);
+
+      // Override/Set fields
+      payload.set("Action", "AgentTicketNote");
+      payload.set("Subaction", "Store");
+      payload.set("TicketID", String(ticketId));
+      payload.set("Subject", subject || "Note from App");
+      payload.set("Body", body || "-");
+      payload.set("TimeUnits", timeUnits || "0");
+      
+      // Default ArticleTypeID if not present (usually 1=note-internal)
+      if (!payload.has("ArticleTypeID")) {
+        payload.set("ArticleTypeID", "1"); 
+      }
+
+      payload.set("Submit", "1");
+
+      const submitResp = await client.post(action, payload.toString(), {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Referer: formUrl,
+          "User-Agent": "Mozilla/5.0",
+        },
+      });
+
+      const outHtml = String(submitResp.data);
+      if (looksLikeLoginPage(outHtml)) {
+         res.status(401).json({ success: false, message: "Session expired" });
+         return;
+      }
+
+      // Check for success (usually redirects to Zoom or shows success message)
+      // We can assume success if no error box
+      const $$ = cheerio.load(outHtml);
+      const errorText = normalizeSpaces($$(".ErrorMessage, .ErrorBox").text());
+
+      if (errorText) {
+        res.json({ success: false, message: errorText });
+      } else {
+        res.json({ success: true, message: "Note added successfully" });
+      }
+
+    } catch (err: any) {
+      console.error("ADD NOTE ERROR:", err.message);
+      res.status(500).json({ success: false, message: "Failed to add note", error: err.message });
+    }
+  });
+
   // -------- CHANGE STATE (GET form) --------
   app.get("/api/ticket/:id/state", async (req, res) => {
     try {

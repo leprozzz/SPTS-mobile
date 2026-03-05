@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Ticket, TicketDetail, FreeField, AppView } from './types';
 import { SlaBadge } from './components/SlaBadge';
 import { geminiService } from './services/geminiService';
-import { FF_LABEL, GOOGLE_SCRIPTS_URL, API_BASE } from './constants';
+import { FF_LABEL, GOOGLE_SCRIPTS_URL, API_BASE, PARTS_LIST } from './constants';
 
 export default function App() {
   const [view, setView] = useState<AppView>(AppView.DASHBOARD);
@@ -38,10 +38,22 @@ export default function App() {
   const [ffStep, setFfStep] = useState(0);
   const [ffSaving, setFfSaving] = useState(false);
 
+  // Parts State
+  const [ffNoParts, setFfNoParts] = useState(false);
+  const [ffParts, setFfParts] = useState<{name: string, serial: string}[]>([{name: "", serial: ""}]);
+
   // AI State
   const [aiMessage, setAiMessage] = useState("");
   const [aiHistory, setAiHistory] = useState<{ role: 'user' | 'bot', text: string }[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+
+  const [description, setDescription] = useState<string | null>(null);
+  
+  // Add Note State
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [noteSubject, setNoteSubject] = useState("Tehnička napomena");
+  const [noteSaving, setNoteSaving] = useState(false);
 
   // --- API HANDLERS ---
   const handleLogin = async () => {
@@ -105,16 +117,32 @@ export default function App() {
   const openTicket = async (id: string) => {
     setSelectedId(id);
     setLoading(true);
+    setDescription("Učitavanje opisa...");
     try {
-      const r = await fetch(`${API_BASE}/api/ticket/${id}`);
-      const data = await r.json();
+      // Parallel fetch: details + description
+      const [detailRes, descRes] = await Promise.all([
+        fetch(`${API_BASE}/api/ticket/${id}`),
+        fetch(`${API_BASE}/api/ticket/${id}/description`)
+      ]);
+
+      const data = await detailRes.json();
+      const descData = await descRes.json();
+
       if (data.success) {
         setDetail(data);
         const step = await checkWorkflowStatus(id);
         setWorkflowStep(step);
       }
+      
+      if (descData.success) {
+        setDescription(descData.description);
+      } else {
+        setDescription("Nije moguće učitati opis.");
+      }
+
     } catch {
       setError("Greška pri učitavanju detalja.");
+      setDescription("Greška.");
     } finally {
       setLoading(false);
     }
@@ -180,6 +208,31 @@ export default function App() {
       setError("Greška pri slanju podataka.");
     } finally {
       setFfSaving(false);
+    }
+  };
+
+  const submitNote = async () => {
+    if (!selectedId) return;
+    setNoteSaving(true);
+    try {
+      const r = await fetch(`${API_BASE}/api/ticket/${selectedId}/note`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: noteSubject, body: noteText }),
+      });
+      const data = await r.json();
+      if (data.success) {
+        setNoteOpen(false);
+        setNoteText("");
+        // Refresh ticket to show new note in history (optional, or just alert)
+        // openTicket(selectedId); 
+      } else {
+        setError(data.message || "Greška pri dodavanju napomene");
+      }
+    } catch {
+      setError("Greška pri slanju napomene.");
+    } finally {
+      setNoteSaving(false);
     }
   };
 
@@ -312,17 +365,10 @@ export default function App() {
     setAiHistory(prev => [...prev, { role: 'user', text: msg }]);
     setAiLoading(true);
     
-    // Mock response instead of API call
-    setTimeout(() => {
-      const answer = "Gemini API je trenutno isključen. Ovo je demo odgovor.";
-      setAiHistory(prev => [...prev, { role: 'bot', text: answer }]);
-      setAiLoading(false);
-    }, 1000);
-
-    // const context = detail ? `Klijent: ${detail.location?.name}, Kvar: ${detail.subject}. Opis: ${detail.articles[0]}` : "";
-    // const answer = await geminiService.getAiAdvice(msg, context);
-    // setAiHistory(prev => [...prev, { role: 'bot', text: answer }]);
-    // setAiLoading(false);
+    const context = detail ? `Klijent: ${detail.location?.name}, Kvar: ${detail.subject}. Opis: ${detail.articles[0]}` : "";
+    const answer = await geminiService.getAiAdvice(msg, context);
+    setAiHistory(prev => [...prev, { role: 'bot', text: answer }]);
+    setAiLoading(false);
   };
 
   // --- GESTURE LOGIC ---
@@ -435,8 +481,8 @@ export default function App() {
                 {/* 2. DESCRIPTION CARD */}
                 <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
                   <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Opis Problema</h4>
-                  <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line italic">
-                    NULL
+                  <div className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+                    {description || "..."}
                   </div>
                 </div>
 
@@ -487,11 +533,25 @@ export default function App() {
                   </div>
                 </button>
 
+                {/* ACTION: ADD NOTE */}
+                <button 
+                  onClick={() => setNoteOpen(true)}
+                  className="w-full bg-amber-500 p-5 rounded-3xl text-white flex items-center justify-between shadow-xl active:scale-95 transition-all"
+                >
+                  <div className="text-left">
+                    <p className="text-[10px] font-black opacity-60 uppercase tracking-widest">Akcija</p>
+                    <p className="font-bold text-lg">DODAJ NAPOMENU</p>
+                  </div>
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  </div>
+                </button>
+
                 {/* CLOSE TICKET BUTTON */}
                 {workflowStep >= 4 && workflowStep < 6 && (
                   <button 
                     onClick={handleCloseTicket}
-                    className="w-full mt-4 bg-red-600 p-5 rounded-3xl text-white flex items-center justify-between shadow-xl active:scale-95 transition-all"
+                    className="w-full bg-red-600 p-5 rounded-3xl text-white flex items-center justify-between shadow-xl active:scale-95 transition-all"
                   >
                     <div className="text-left">
                       <p className="text-[10px] font-black opacity-60 uppercase tracking-widest">Akcija</p>
@@ -531,16 +591,48 @@ export default function App() {
             )}
 
             {view === AppView.EXTERNAL_APPS && (
-              <div className="p-6 space-y-6 animate-in slide-in-from-right duration-300">
-                <div className="bg-white rounded-3xl p-8 border shadow-sm text-center">
-                  <div className="w-20 h-20 bg-purple-50 text-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <div className="h-full flex flex-col animate-in slide-in-from-right duration-300 bg-gray-50 p-4">
+                <h2 className="text-2xl font-black text-gray-900 mb-4 px-2">Eksterni Alati</h2>
+                
+                <div className="flex-1 bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden relative flex flex-col">
+                  {/* Header Bar */}
+                  <div className="bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 leading-tight">Google Script</h3>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Portal</p>
+                      </div>
+                    </div>
+                    <a 
+                      href={GOOGLE_SCRIPTS_URL} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-lg hover:bg-blue-700 transition-all active:scale-95"
+                    >
+                      OTVORI
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
                   </div>
-                  <h3 className="font-bold text-xl text-gray-900 mb-2">Google Scripts Portal</h3>
-                  <p className="text-gray-500 text-sm mb-8 leading-relaxed">Eksterni alati za izvještaje i upravljanje stanjem na terenu.</p>
-                  <a href={GOOGLE_SCRIPTS_URL} target="_blank" className="block w-full py-4 bg-purple-600 text-white font-bold rounded-2xl shadow-xl active:scale-95 transition-all">
-                    OTVORI PORTAL
-                  </a>
+
+                  {/* Iframe Container */}
+                  <div className="flex-1 relative bg-gray-50">
+                    <iframe 
+                      src={GOOGLE_SCRIPTS_URL} 
+                      className="w-full h-full border-none"
+                      title="Google Scripts Portal"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation-by-user-activation"
+                    />
+                    
+                    {/* Helper Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-3 text-center border-t border-gray-100">
+                      <p className="text-[10px] text-gray-500 font-medium">
+                        Ako se aplikacija ne učitava (sigurnosna greška), kliknite na dugme "OTVORI" iznad.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -641,12 +733,58 @@ export default function App() {
         </div>
       )}
 
+      {/* NOTE OVERLAY */}
+      {noteOpen && (
+        <div className="fixed inset-0 bg-black/70 z-[100] p-6 flex items-center justify-center backdrop-blur-md">
+          <div className="bg-white w-full max-w-lg rounded-[40px] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
+            <div className="p-8 relative">
+              <button onClick={() => setNoteOpen(false)} className="absolute top-6 right-6 text-gray-300 hover:text-gray-900 transition-colors">
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Dodaj Napomenu</h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Naslov</label>
+                  <input 
+                    className="w-full p-4 bg-gray-50 rounded-2xl border-none shadow-sm outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                    value={noteSubject}
+                    onChange={e => setNoteSubject(e.target.value)}
+                    placeholder="Naslov napomene"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Tekst Napomene</label>
+                  <textarea 
+                    className="w-full p-4 bg-gray-50 rounded-2xl border-none shadow-sm outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                    rows={4}
+                    value={noteText}
+                    onChange={e => setNoteText(e.target.value)}
+                    placeholder="Unesite tekst napomene..."
+                  />
+                </div>
+
+                <button 
+                  disabled={noteSaving} 
+                  onClick={submitNote} 
+                  className="w-full py-5 bg-amber-500 text-white font-bold rounded-2xl shadow-xl active:scale-95 transition-all mt-4"
+                >
+                  {noteSaving ? "SPREMANJE..." : "SPREMI NAPOMENU"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* WORKFLOW OVERLAY */}
       {ffOpen && (
-        <div className="fixed inset-0 bg-black/70 z-[100] p-6 flex items-end justify-center backdrop-blur-md">
-          <div className="bg-white w-full max-w-lg rounded-[40px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-500">
-            <div className="p-10 relative">
-              <button onClick={() => setFfOpen(false)} className="absolute top-8 right-8 text-gray-300 hover:text-gray-900 transition-colors">
+        <div className="fixed inset-0 bg-black/70 z-[100] p-0 sm:p-6 flex items-end justify-center backdrop-blur-md">
+          <div className="bg-white w-full h-full sm:h-auto sm:max-w-lg rounded-none sm:rounded-[40px] overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-500 flex flex-col">
+            <div className="p-6 sm:p-10 relative flex-1 overflow-y-auto">
+              <button onClick={() => setFfOpen(false)} className="absolute top-6 right-6 sm:top-8 sm:right-8 text-gray-300 hover:text-gray-900 transition-colors z-10">
                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
               
@@ -694,11 +832,110 @@ export default function App() {
 
                  {ffStep === 3 && (
                    <div className="space-y-4">
-                      <div className="bg-gray-50 p-6 rounded-3xl border border-dashed border-gray-200">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Opis rješenja</label>
-                        <textarea className="w-full p-4 bg-white rounded-2xl border-none shadow-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold" rows={4} placeholder="Šta je urađeno?" value={ffForm.DynamicField_Solution || ""} onChange={e => setFfForm(p => ({...p, DynamicField_Solution: e.target.value}))} />
+                      {/* Rješenje */}
+                      <div className="bg-gray-50 p-3 rounded-3xl border border-dashed border-gray-200">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2 px-2">Rješenje</label>
+                        <textarea 
+                          className="w-full p-3 bg-white rounded-2xl border-none shadow-sm outline-none focus:ring-2 focus:ring-blue-500 font-bold" 
+                          rows={4} 
+                          placeholder="Šta je urađeno?" 
+                          value={ffForm.DynamicField_Solution || ""} 
+                          onChange={e => setFfForm(p => ({...p, DynamicField_Solution: e.target.value}))} 
+                        />
                       </div>
-                      <button disabled={ffSaving} onClick={() => submitFF("endofwork", { DynamicField_Solution: ffForm.DynamicField_Solution })} className="w-full py-5 bg-blue-600 text-white font-bold rounded-2xl shadow-xl">ZAVRŠI RAD NA SITE-U</button>
+
+
+
+                      {/* Utrošak Dijelova */}
+                      <div className="bg-gray-50 p-4 rounded-3xl border border-dashed border-gray-200">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Utrošak Dijelova</label>
+                        
+                        <div className="mb-3">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              checked={ffNoParts}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setFfNoParts(checked);
+                                if (checked) setFfParts([{name: "", serial: ""}]); 
+                              }}
+                            />
+                            <span className="text-sm font-bold text-gray-600">Nije bilo utroška dijelova</span>
+                          </label>
+                        </div>
+
+                        {!ffNoParts && (
+                          <div className="space-y-3">
+                            {ffParts.map((part, index) => (
+                              <div key={index} className="flex gap-2 items-start">
+                                <div className="flex-1 space-y-2">
+                                  <select
+                                    className="w-full p-3 bg-white rounded-xl border-none shadow-sm outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm appearance-none"
+                                    value={part.name}
+                                    onChange={(e) => {
+                                      const newParts = [...ffParts];
+                                      newParts[index].name = e.target.value;
+                                      setFfParts(newParts);
+                                    }}
+                                  >
+                                    <option value="" disabled>Odaberi dio</option>
+                                    {PARTS_LIST.map(p => <option key={p} value={p}>{p}</option>)}
+                                  </select>
+                                  <input 
+                                    className="w-full p-3 bg-white rounded-xl border-none shadow-sm outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+                                    placeholder="Unesi serijski broj"
+                                    value={part.serial}
+                                    onChange={(e) => {
+                                      const newParts = [...ffParts];
+                                      newParts[index].serial = e.target.value;
+                                      setFfParts(newParts);
+                                    }}
+                                  />
+                                </div>
+                                {ffParts.length > 1 && (
+                                  <button 
+                                    onClick={() => {
+                                      const newParts = ffParts.filter((_, i) => i !== index);
+                                      setFfParts(newParts);
+                                    }}
+                                    className="p-3 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 active:scale-95 transition-all h-[46px]"
+                                  >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <button 
+                              onClick={() => setFfParts([...ffParts, {name: "", serial: ""}])}
+                              className="text-sm font-bold text-blue-600 flex items-center gap-1 mt-2 px-2 hover:text-blue-700 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
+                              DODAJ DIO
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <button 
+                        disabled={ffSaving} 
+                        onClick={() => {
+                          const partsValue = ffNoParts 
+                            ? "NEMA" 
+                            : ffParts
+                                .filter(p => p.name.trim())
+                                .map(p => `${p.name} (SN: ${p.serial})`)
+                                .join(", ");
+                          submitFF("endofwork", { 
+                            DynamicField_Solution: ffForm.DynamicField_Solution,
+                            DynamicField_Parts: partsValue
+                          });
+                        }} 
+                        className="w-full py-5 bg-blue-600 text-white font-bold rounded-2xl shadow-xl active:scale-95 transition-all"
+                      >
+                        ZAVRŠI RAD NA SITE-U
+                      </button>
                    </div>
                  )}
 
